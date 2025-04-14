@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "interface.h"
+#include "tokenizer/char_tokenizer.h"
+#include "embedding/embedding.h"
 
 #define MAX_INPUT_LEN 256
 
@@ -19,12 +21,10 @@ int main() {
     get_input(input, MAX_INPUT_LEN);
 
     int tokens[MAX_INPUT_LEN];
-    int token_len = tokenize(input, tokens, MAX_INPUT_LEN);
+    int token_len = char_tokenize(input, tokens, MAX_INPUT_LEN);
 
-    for (int i = 0; i < token_len; i++)
-    {
-        printf("%d ", tokens[i]);
-    }
-
+    float *embed_matrix = init_embed_matrix(EMBED_DIM, NUM_TOKENS);
+    
+    dispose_embed_matrix(embed_matrix);
     return 0;
 }
