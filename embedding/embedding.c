@@ -14,9 +14,9 @@ float *init_embed_matrix(int rows, int columns)
     return embed_matrix;
 }
 
-float *embed_matrix_at(float* matrix, int row, int col, int cols) 
+float *embed_matrix_at(float* matrix, int row, int col, int elements_in_col) 
 {
-    return &matrix[row * cols + col];
+    return &matrix[row * elements_in_col + col];
 }
 
 void dispose_embed_matrix(float *matrix)

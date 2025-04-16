@@ -5,6 +5,6 @@
 
 int char_to_id(char c);
 char id_to_char(int id);
-int char_tokenize(char *text, int *tokens, int max_len);
+int char_tokenize(char text[], int tokens[], int max_len);
 
 #endif

@@ -25,7 +25,7 @@ char id_to_char(int id)
     return '#';
 }
 
-int char_tokenize(char *text, int *tokens, int max_len) 
+int char_tokenize(char text[], int tokens[], int max_len) 
 {
     int i = 0;
     while (text[i] != '\0' && i < max_len) 
