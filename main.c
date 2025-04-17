@@ -1,9 +1,10 @@
+#include "tokenizer/char_tokenizer.h"
+#include "matrix/matrix.h"
+#include "kernel/kernel.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "tokenizer/char_tokenizer.h"
-#include "embedding/embedding.h"
 
 #define MAX_INPUT_LEN 256
 
@@ -16,35 +17,36 @@ void get_input(char input[], int len)
     }
 }
 
-float *create_input_matrix(int tokens[], int token_len, float *embed_matrix, int embed_dim)
+void add_position_embedding(float *input_matrix, int token_len, float *position_matrix, int embed_dim)
 {
-    float *input_matrix = malloc(sizeof(float) * token_len * embed_dim);
-    if (input_matrix == NULL) exit(EXIT_FAILURE);
-    int k = 0;
     for (int i = 0; i < token_len; i++)
     {
-        int token = tokens[i];
         for (int j = 0; j < embed_dim; j++)
         {
-            float value = *embed_matrix_at(embed_matrix, j, token, embed_dim);
-            input_matrix[k] = value;
-            k++;
+            float token = *matrix_get_at(input_matrix, j, i, embed_dim);
+            float pos_encoding = *matrix_get_at(position_matrix, j, i, embed_dim);
+            matrix_set_at(input_matrix, j, i, embed_dim, token+pos_encoding);
         }
     }
-    return input_matrix;
 }
 
 int main() {
+    float *embed_matrix = init_fmatrix(EMBED_DIM, NUM_TOKENS);
+    float *position_matrix = init_fmatrix(EMBED_DIM, MAX_INPUT_LEN);
+    
     char input[MAX_INPUT_LEN];
     get_input(input, MAX_INPUT_LEN);
-
+    
     int tokens[MAX_INPUT_LEN];
     int token_len = char_tokenize(input, tokens, MAX_INPUT_LEN);
 
-    float *embed_matrix = init_embed_matrix(EMBED_DIM, NUM_TOKENS);
-
     float *input_matrix = create_input_matrix(tokens, token_len, embed_matrix, EMBED_DIM);
     
-    dispose_embed_matrix(embed_matrix);
+    gpu_addvectors(input_matrix, position_matrix, token_len * EMBED_DIM);
+    
+    dispose_fmatrix(embed_matrix);
+    dispose_fmatrix(position_matrix);
+
+    dispose_fmatrix(input_matrix);
     return 0;
 }
