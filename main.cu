@@ -2,22 +2,9 @@
 #include "matrix/matrix.h"
 #include "kernel/kernel.h"
 #include "attention/attention.h"
-
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include "input/input.h"
 
 #define MAX_INPUT_LEN 256
-
-void get_input(char input[], int len)
-{
-    printf("User: ");
-    if (fgets(input, sizeof(char) * len, stdin)) 
-    {
-        input[strcspn(input, "\n")] = '\0';
-    }
-    return;
-}
 
 void init_gpu_pointers(float **cudaW_e, float **cudaW_p, float **cudaW_q, float **cudaW_k)
 {
@@ -50,14 +37,38 @@ int main() {
     int tokens[MAX_INPUT_LEN];
     int token_len = char_tokenize(input, tokens, MAX_INPUT_LEN);
 
-    float *embed_matrix = create_input_matrix(tokens, token_len, cudaW_e, EMBED_DIM, NUM_TOKENS);
+    float *input_matrix = create_input_matrix(tokens, token_len, cudaW_e, EMBED_DIM, NUM_TOKENS);
+    float *cuda_embed_matrix = 0;
+    gpu_init(&cuda_embed_matrix, input_matrix, EMBED_DIM * token_len);
+    dispose_fmatrix(input_matrix);
     
-    gpu_addDeviceToHostMatrix(embed_matrix, token_len * EMBED_DIM, cudaW_p);
+    gpu_addPositionMatrix(cuda_embed_matrix, cudaW_p, EMBED_DIM * token_len);
 
-    dispose_fmatrix(embed_matrix);
+    float *cuda_logit = 0;
+    gpu_init_zero(&cuda_logit, token_len * token_len);
+
+    float *cuda_query = 0;
+    gpu_init_zero(&cuda_query, QUERY_KEY_DIM * token_len);
+
+    float *cuda_key = 0;
+    gpu_init_zero(&cuda_key, QUERY_KEY_DIM * token_len);
+
+    // Compute Queries
+    gpu_cublas_matmul(cudaW_q, cuda_embed_matrix, cuda_query, QUERY_KEY_DIM, EMBED_DIM, token_len);
+
+    // Compute Keys
+    gpu_cublas_matmul(cudaW_k, cuda_embed_matrix, cuda_key, QUERY_KEY_DIM, EMBED_DIM, token_len);
+
+    kernel_cudafree(cuda_logit);
+
+    kernel_cudafree(cuda_query);
+    kernel_cudafree(cuda_key);
+    
     kernel_cudafree(cudaW_e);
     kernel_cudafree(cudaW_p);
     kernel_cudafree(cudaW_q);
     kernel_cudafree(cudaW_k);
+
+    kernel_cudafree(cuda_embed_matrix);
     return 0;
 }

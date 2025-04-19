@@ -1,8 +1,6 @@
 #include "matrix.h"
 #include "../kernel/kernel.h"
 
-#include <cstdlib>
-
 void init_sfmatrix(float *matrix, int size)
 {
     for (int i = 0; i < size; i++)

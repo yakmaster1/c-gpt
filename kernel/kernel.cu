@@ -4,7 +4,9 @@
 #include <device_launch_parameters.h>
 #include <cublas_v2.h>
 
-__global__ void vectorAdd_a_to_b(float *cudaA, float *cudaB, int size)
+#define MAX_THREADS 256
+
+__global__ void vectorAdd(float *cudaA, float *cudaB, int size)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i < size) {
@@ -13,19 +15,12 @@ __global__ void vectorAdd_a_to_b(float *cudaA, float *cudaB, int size)
     return;
 }
 
-void gpu_addDeviceToHostMatrix(float *host_matrix, int host_size, float *device_matrix_pointer)
+void gpu_addPositionMatrix(float *cuda_embed_matrix, float *cuda_position_matrix, int embed_elements)
 {
-    float *cudaHost = 0;
-    gpu_init(&cudaHost, host_matrix, host_size);
-
     int threads = 256;
-    int blocks = (host_size + threads - 1) / threads;
-    vectorAdd_a_to_b<<<blocks, threads>>>(cudaHost, device_matrix_pointer, host_size);
+    int blocks = (embed_elements + threads - 1) / threads;
+    vectorAdd<<<blocks, threads>>>(cuda_embed_matrix, cuda_position_matrix, embed_elements);
     cudaDeviceSynchronize();
-    
-    cudaMemcpy(host_matrix, cudaHost, host_size * sizeof(float), cudaMemcpyDeviceToHost);
-
-    cudaFree(cudaHost);
     return;
 }
 
@@ -53,6 +48,15 @@ void gpu_cublas_matmul(float *A, float *B, float *C, int m, int k, int n)
     );
 
     cublasDestroy(handle);
+    return;
+}
+
+void gpu_init_zero(float **pointer, int elements)
+{
+    float *zero = (float*)calloc(elements, sizeof(float));
+    if(zero == NULL) exit(EXIT_FAILURE);
+    gpu_init(pointer, zero, elements);
+    free(zero);
     return;
 }
 
